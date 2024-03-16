@@ -1,0 +1,9 @@
+pandas
+folium
+langchain
+openai
+langchain-openai
+langchain-core
+langchain-community
+streamlit
+streamlit-folium
