@@ -36,9 +36,9 @@ if st.button('여행지 추천받기'):
         result = chain.invoke({"input" : user_input})
     st.write(result)
 
-user_input = input("사용자: ")
-result = chain.invoke({"input" : user_input})
-print(result)
+#user_input = input("사용자: ")
+#result = chain.invoke({"input" : user_input})
+#print(result)
 
 text = result
 
