@@ -40,7 +40,7 @@ if st.button('여행지 추천받기'):
 #result = chain.invoke({"input" : user_input})
 #print(result)
 
-text = result
+#text = result
 
 pattern = r"(.+?)\(위도: (\d+\.\d+), 경도: (\d+\.\d+)\)"
 matches = re.findall(pattern, text)
