@@ -7,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 #OpenAi API Key
-llm = ChatOpenAI(openai_api_key = "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")
+llm = ChatOpenAI(openai_api_key = "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")
 
 #Prompt
 prompt = ChatPromptTemplate.from_messages([
