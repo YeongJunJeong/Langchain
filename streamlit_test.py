@@ -3,9 +3,11 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import openai
+import dotenv
 
-openai.api_key = st.secrets["openai_api_key"]
+dotenv.load_dotenv()
+
+# openai.api_key = st.secrets["openai_api_key"]
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
