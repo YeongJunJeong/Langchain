@@ -3,10 +3,9 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import dotenv
+# import dotenv
 
-dotenv.load_dotenv()
-
+# dotenv.load_dotenv()
 # openai.api_key = st.secrets["openai_api_key"]
 
 if "openai_model" not in st.session_state:
