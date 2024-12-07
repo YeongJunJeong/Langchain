@@ -60,7 +60,7 @@ user_input = st.chat_input("질문을 입력하세요.", key="user_input")
 
 # 대화 이력 저장을 위한 세션 상태 사용
 if 'chat_history' not in st.session_state:
-    st.session_state['chat_history'] = []
+    st.session_state['chat_history'] = []  # 세션 상태에 대화 이력 초기화
 
 # 사용자 메시지가 입력되면 대화 이력에 추가
 if user_input:
@@ -69,16 +69,22 @@ if user_input:
     # 화면에 사용자 메시지 출력
     st.chat_message("user").write(user_input)
 
-# chat_history에 새로운 사용자 메시지가 있다면 AI 응답 생성
-if st.session_state['chat_history'] and isinstance(st.session_state['chat_history'][-1], HumanMessage):
     # AI 응답 생성
     ai_response, _ = response(
-        st.session_state['chat_history'][-1].content, 
+        user_input, 
         st.session_state['chat_history']
     )
-    
+
     # AI 응답을 chat_history에 추가
     st.session_state['chat_history'].append(AIMessage(content=ai_response))
-    
     # 화면에 AI 응답 출력
     st.chat_message("assistant").write(ai_response)
+
+# 기존 대화 내역을 순차적으로 출력
+if st.session_state['chat_history']:
+    for message in st.session_state['chat_history']:
+        if isinstance(message, HumanMessage):
+            st.chat_message("user").write(message.content)
+        elif isinstance(message, AIMessage):
+            st.chat_message("assistant").write(message.content)
+            
