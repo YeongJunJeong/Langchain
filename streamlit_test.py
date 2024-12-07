@@ -64,17 +64,17 @@ if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
 if user_input:
-    ai_response, new_history = response(user_input, st.session_state['chat_history'])
-    st.session_state['chat_history'] = new_history
+    # 사용자 메시지를 대화 이력에 추가
+    st.session_state['chat_history'].append(HumanMessage(content=user_input))
+    
+    # AI 응답 생성 및 대화 이력에 추가
+    ai_response, _ = response(user_input, st.session_state['chat_history'])
+    st.session_state['chat_history'].append(AIMessage(content=ai_response))
 
 # 대화 이력을 메시지 순서대로 출력
 with messages:
-    for i in range(0, len(st.session_state['chat_history']), 2):  # 인덱스를 2개씩 순회
-        if i < len(st.session_state['chat_history']):
-            user_message = st.session_state['chat_history'][i]
-            assistant_message = st.session_state['chat_history'][i + 1] if i + 1 < len(st.session_state['chat_history']) else None
-
-            if isinstance(user_message, HumanMessage):
-                st.chat_message("user").write(user_message.content)
-            if assistant_message and isinstance(assistant_message, AIMessage):
-                st.chat_message("assistant").write(assistant_message.content)
+    for message in st.session_state['chat_history']:
+        if isinstance(message, HumanMessage):
+            st.chat_message("user").write(message.content)
+        elif isinstance(message, AIMessage):
+            st.chat_message("assistant").write(message.content)
