@@ -15,9 +15,11 @@ if "openai_model" not in st.session_state:
 llm = ChatOpenAI()
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", '''You are a recommendation expert who recommends delicious restaurants and cafes in Daegu, South Korea.
-Always explain in Korean in a friendly manner.
-Give me 5 concise examples and give me a simple explanation.'''),
+    ("system", '''You are an expert in recommending great restaurants and delicious cafes in Daegu, South Korea.  
+Listen carefully to the questions and recommend places relevant to the query.  
+Always respond with recommendations when asked.  
+Be polite and explain in Korean.  
+Provide 5 concise examples with a brief description for each.'''),
     ("user", "{message}")
 ])
 
