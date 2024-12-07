@@ -57,24 +57,28 @@ st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
 
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
-messages = st.container()
 
 # 대화 이력 저장을 위한 세션 상태 사용
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
+# 사용자 메시지가 입력되면 대화 이력에 추가
 if user_input:
-    # 사용자 메시지를 대화 이력에 추가
+    # 사용자 메시지를 chat_history에 추가
     st.session_state['chat_history'].append(HumanMessage(content=user_input))
-    
-    # AI 응답 생성 및 대화 이력에 추가
-    ai_response, _ = response(user_input, st.session_state['chat_history'])
-    st.session_state['chat_history'].append(AIMessage(content=ai_response))
+    # 화면에 사용자 메시지 출력
+    st.chat_message("user").write(user_input)
 
-# 대화 이력을 메시지 순서대로 출력
-with messages:
-    for message in st.session_state['chat_history']:
-        if isinstance(message, HumanMessage):
-            st.chat_message("user").write(message.content)
-        elif isinstance(message, AIMessage):
-            st.chat_message("assistant").write(message.content)
+# chat_history에 새로운 사용자 메시지가 있다면 AI 응답 생성
+if st.session_state['chat_history'] and isinstance(st.session_state['chat_history'][-1], HumanMessage):
+    # AI 응답 생성
+    ai_response, _ = response(
+        st.session_state['chat_history'][-1].content, 
+        st.session_state['chat_history']
+    )
+    
+    # AI 응답을 chat_history에 추가
+    st.session_state['chat_history'].append(AIMessage(content=ai_response))
+    
+    # 화면에 AI 응답 출력
+    st.chat_message("assistant").write(ai_response)
