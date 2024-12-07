@@ -46,7 +46,6 @@ def response(message, history):
     history_langchain_format.append(AIMessage(content=gpt_response))
 
     return gpt_response, history_langchain_format
-
 # 챗봇 UI 구성
 st.set_page_config(
     page_title="대푸리카(DFRC)", 
@@ -62,11 +61,15 @@ user_input = st.chat_input("질문을 입력하세요.", key="user_input")
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []  # 세션 상태에 대화 이력 초기화
 
-# 사용자 메시지가 입력되면 대화 이력에 추가
+if 'messages_displayed' not in st.session_state:
+    st.session_state['messages_displayed'] = 0  # 이미 출력된 메시지 개수를 추적
+
+# 사용자 메시지가 입력되면 처리
 if user_input:
     # 사용자 메시지를 chat_history에 추가
     st.session_state['chat_history'].append(HumanMessage(content=user_input))
-    # 화면에 사용자 메시지 출력
+
+    # 사용자 메시지를 화면에 출력
     st.chat_message("user").write(user_input)
 
     # AI 응답 생성
@@ -77,14 +80,16 @@ if user_input:
 
     # AI 응답을 chat_history에 추가
     st.session_state['chat_history'].append(AIMessage(content=ai_response))
-    # 화면에 AI 응답 출력
+
+    # AI 응답을 화면에 출력
     st.chat_message("assistant").write(ai_response)
 
-# 기존 대화 내역을 순차적으로 출력
-if st.session_state['chat_history']:
-    for message in st.session_state['chat_history']:
-        if isinstance(message, HumanMessage):
-            st.chat_message("user").write(message.content)
-        elif isinstance(message, AIMessage):
-            st.chat_message("assistant").write(message.content)
-            
+# 기존 대화 이력을 화면에 출력 (중복 방지)
+for message in st.session_state['chat_history'][st.session_state['messages_displayed']:]:
+    if isinstance(message, HumanMessage):
+        st.chat_message("user").write(message.content)
+    elif isinstance(message, AIMessage):
+        st.chat_message("assistant").write(message.content)
+
+# 출력된 메시지 개수를 업데이트
+st.session_state['messages_displayed'] = len(st.session_state['chat_history'])
