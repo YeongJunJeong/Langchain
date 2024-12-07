@@ -9,16 +9,15 @@ from langchain_core.output_parsers import StrOutputParser
 # openai.api_key = st.secrets["openai_api_key"]
 
 if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+    st.session_state["openai_model"] = "gpt-4o"
 
 # OpenAI API 키 설정 및 초기화
 llm = ChatOpenAI()
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", '''Your name is “가볼까?” hey.
-    You are a Daegu travel expert who recommends 
-    tourist attractions in Daegu, South Korea to people.
-    You must always answer in Korean.'''),
+    ("system", '''You are a recommendation expert who recommends delicious restaurants and cafes in Daegu, South Korea.
+Always explain in Korean in a friendly manner.
+Give me 5 concise examples and give me a simple explanation.'''),
     ("user", "{message}")
 ])
 
@@ -48,11 +47,11 @@ def response(message, history):
 
 # 챗봇 UI 구성
 st.set_page_config(
-    page_title="가볼까?", 
-    page_icon=":rocket:")
+    page_title="대푸리카(DFRC)", 
+    page_icon="🥞")
 
-st.title('가볼까?')
-st.caption(':blue 대구여행 추천 Chat :rocket:')
+st.title('대푸리카(DFRC)')
+st.caption(':blue 대구여행 추천 Chat 🥞')
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
 messages = st.container(height=400)
 
