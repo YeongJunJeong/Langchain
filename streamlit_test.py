@@ -50,12 +50,14 @@ def response(message, history):
 # 챗봇 UI 구성
 st.set_page_config(
     page_title="대푸리카(DFRC)", 
-    page_icon="🥞")
+    page_icon="🥞"
+)
 
 st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
+
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
-messages = st.container(height=500)
+messages = st.container()
 
 # 대화 이력 저장을 위한 세션 상태 사용
 if 'chat_history' not in st.session_state:
@@ -65,8 +67,14 @@ if user_input:
     ai_response, new_history = response(user_input, st.session_state['chat_history'])
     st.session_state['chat_history'] = new_history
 
-    for message in st.session_state['chat_history']:
-        if isinstance(message, HumanMessage):
-            messages.chat_message("user").write(message.content)
-        if isinstance(message, AIMessage):
-            messages.chat_message("assistant").write(message.content)
+# 대화 이력을 메시지 순서대로 출력
+with messages:
+    for i in range(0, len(st.session_state['chat_history']), 2):  # 인덱스를 2개씩 순회
+        if i < len(st.session_state['chat_history']):
+            user_message = st.session_state['chat_history'][i]
+            assistant_message = st.session_state['chat_history'][i + 1] if i + 1 < len(st.session_state['chat_history']) else None
+
+            if isinstance(user_message, HumanMessage):
+                st.chat_message("user").write(user_message.content)
+            if assistant_message and isinstance(assistant_message, AIMessage):
+                st.chat_message("assistant").write(assistant_message.content)
