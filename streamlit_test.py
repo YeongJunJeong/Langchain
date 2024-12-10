@@ -47,8 +47,6 @@ def response(message, history):
 # 챗봇 UI 구성
 st.set_page_config(
     page_title="대푸리카(DFRC)", 
-    page_icon="🥞"
-)
     page_icon="🥞")
 
 st.title('대푸리카(DFRC)')
