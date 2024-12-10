@@ -92,7 +92,7 @@ def recommend(df, user_input, korean_stop_words):
 def generate_place_descriptions(places):
     # 장소 정보를 문자열로 정리
     place_details = "\n\n".join(
-        [f"장소 {i+1}:\n이름: {place['name']}\n설명: {place['info']}\n주소: {place['address']}\n연락처: {place['phone']}"
+        [f"장소 {i+1}:\n이름: {place['상호명']}}"
          for i, place in enumerate(places)]
     )
 
