@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
 # 데이터 로드
-df = pd.read_csv(r"C:\Users\jyjun\OneDrive\바탕 화면\채찍\dataset.csv", encoding="cp949")
+df = pd.read_csv("음식점.csv", encoding="cp949")
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
