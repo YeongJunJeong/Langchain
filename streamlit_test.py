@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
 # 데이터 로드
-df = pd.read_csv('음식점.csv', encoding='utf-8')
+df = pd.read_csv('./data/음식점.csv', encoding='cp949')
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-4o"
