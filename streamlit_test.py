@@ -63,11 +63,10 @@ korean_stop_words = [
     "보다", "보이다", "등", "등등", "등등등"
     ]
 
-# 추천 함수
 def recommend(df, user_input, korean_stop_words):
     user_input_list = [user_input]
-    
-    # 모든 열의 데이터를 합쳐서 하나의 텍스트로 처리
+
+    # 모든 열 데이터를 결합
     df['combined'] = df.apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
     combined_data = df['combined'].tolist()
 
@@ -89,11 +88,23 @@ def recommend(df, user_input, korean_stop_words):
 
     return recommended_places
 
+# GPT로 설명 생성
+def generate_place_descriptions(places):
+    # 장소 정보를 문자열로 정리
+    place_details = "\n\n".join(
+        [f"장소 {i+1}:\n이름: {place['name']}\n설명: {place['info']}\n주소: {place['address']}\n연락처: {place['phone']}"
+         for i, place in enumerate(places)]
+    )
+
+    # GPT에 전달하여 설명 생성
+    gpt_response = chain.invoke({"place_details": place_details})
+    return gpt_response
 
 # 챗봇 UI 구성
 st.set_page_config(
     page_title="대푸리카(DFRC)", 
-    page_icon="🥞")
+    page_icon="🥞"
+)
 
 st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
@@ -105,12 +116,11 @@ if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
 if user_input:
-    # AI 응답 처리
-    ai_response, new_history = response(user_input, st.session_state['chat_history'])
-    st.session_state['chat_history'] = new_history
-
-    # 추천 결과 생성 및 출력
+    # 추천 결과 생성
     recommended_places = recommend(df, user_input, korean_stop_words)
+
+    # GPT 설명 생성
+    gpt_explanation = generate_place_descriptions(recommended_places)
 
     # 대화 메시지 출력
     for message in st.session_state['chat_history']:
@@ -119,8 +129,11 @@ if user_input:
         if isinstance(message, AIMessage):
             messages.chat_message("assistant").write(message.content)
 
-    # 추천 결과 출력
+    # 추천 결과 및 GPT 설명 출력
     with st.container():
-        st.subheader("추천 장소:")
+        st.subheader("GPT가 추천한 장소 설명:")
+        st.write(gpt_explanation)
+
+        st.subheader("추천된 장소 상세 정보:")
         for place in recommended_places:
             st.write(place)
