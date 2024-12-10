@@ -4,10 +4,14 @@ from langchain.schema import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 
+# 데이터 로드
+df = pd.read_csv(r"C:\Users\jyjun\OneDrive\바탕 화면\채찍\dataset.csv", encoding="cp949")
 
 if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+    st.session_state["openai_model"] = "gpt-4o"
 
 # OpenAI API 키 설정 및 초기화
 llm = ChatOpenAI()
@@ -38,12 +42,41 @@ def response(message, history):
     history_langchain_format.append(HumanMessage(content=message))
 
     # LangChain ChatOpenAI 모델을 사용하여 응답 생성
-    gpt_response = chain.invoke({"message" : message})
+    gpt_response = chain.invoke({"message": message})
 
     # 생성된 AI 메시지를 대화 이력에 추가
     history_langchain_format.append(AIMessage(content=gpt_response))
 
     return gpt_response, history_langchain_format
+
+chat_history = []
+
+korean_stop_words = [
+    "이", "그", "저", "에", "가", "을", "를", "의", "은", "는", "들", "를", "과", "와", "에게", "게",
+    "합니다", "하는", "있습니다", "합니다", "많은", "많이", "많은", "많이", "모든", "모두", "한", "그리고", "그런데",
+    # ... 생략 ...
+]
+
+# 추천 함수
+def recommend(df, user_input, korean_stop_words):
+    user_input_list = [user_input]
+    all_about_data = df['all_about'].tolist()
+
+    tfidf = TfidfVectorizer(stop_words=korean_stop_words)
+    tfidf_matrix_all_about = tfidf.fit_transform(all_about_data)
+    tfidf_matrix_input = tfidf.transform(user_input_list)
+
+    # 코사인 유사도 검사
+    cosine_sim = linear_kernel(tfidf_matrix_input, tfidf_matrix_all_about)
+
+    top_place = cosine_sim.argsort()[0][-5:][::-1]
+
+    recommended_places = []
+    for idx in top_place:
+        place_info = df.iloc[idx]
+        recommended_places.append(f"{place_info['name']}: {place_info['info']}")
+
+    return recommended_places
 
 # 챗봇 UI 구성
 st.set_page_config(
@@ -60,11 +93,22 @@ if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
 if user_input:
+    # AI 응답 처리
     ai_response, new_history = response(user_input, st.session_state['chat_history'])
     st.session_state['chat_history'] = new_history
 
+    # 추천 결과 생성 및 출력
+    recommended_places = recommend(df, user_input, korean_stop_words)
+
+    # 대화 메시지 출력
     for message in st.session_state['chat_history']:
         if isinstance(message, HumanMessage):
             messages.chat_message("user").write(message.content)
         if isinstance(message, AIMessage):
             messages.chat_message("assistant").write(message.content)
+
+    # 추천 결과 출력
+    with st.container():
+        st.subheader("추천 장소:")
+        for place in recommended_places:
+            st.write(place)
