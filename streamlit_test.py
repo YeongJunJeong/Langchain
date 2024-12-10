@@ -8,9 +8,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
 # 데이터 로드
-df = pd.read_csv('음식점.csv', encoding='cp949')
+df = pd.read_csv(r"C:\Users\jyjun\OneDrive\바탕 화면\채찍\dataset.csv", encoding="cp949")
 
 if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
     st.session_state["openai_model"] = "gpt-4o"
 
 # OpenAI API 키 설정 및 초기화
@@ -42,6 +43,7 @@ def response(message, history):
     history_langchain_format.append(HumanMessage(content=message))
 
     # LangChain ChatOpenAI 모델을 사용하여 응답 생성
+    gpt_response = chain.invoke({"message" : message})
     gpt_response = chain.invoke({"message": message})
 
     # 생성된 AI 메시지를 대화 이력에 추가
@@ -50,7 +52,6 @@ def response(message, history):
     return gpt_response, history_langchain_format
 
 chat_history = []
-
 korean_stop_words = [
     "이", "그", "저", "에", "가", "을", "를", "의", "은", "는", "들", "를", "과", "와", "에게", "게",
     "합니다", "하는", "있습니다", "합니다", "많은", "많이", "많은", "많이", "모든", "모두", "한", "그리고", "그런데",
@@ -62,49 +63,25 @@ korean_stop_words = [
     "무엇", "무슨", "아무", "여기", "저기", "거기", "그곳", "이곳", "저곳", "무엇", "아무", "모두", "마치",
     "보다", "보이다", "등", "등등", "등등등"
     ]
-
+# 추천 함수
 def recommend(df, user_input, korean_stop_words):
     user_input_list = [user_input]
-
-    # 모든 열 데이터를 결합
-    df['combined'] = df.apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    combined_data = df['combined'].tolist()
-
-    # TF-IDF 처리
+    all_about_data = df['all_about'].tolist()
     tfidf = TfidfVectorizer(stop_words=korean_stop_words)
-    tfidf_matrix_combined = tfidf.fit_transform(combined_data)
+    tfidf_matrix_all_about = tfidf.fit_transform(all_about_data)
     tfidf_matrix_input = tfidf.transform(user_input_list)
-
-    # 코사인 유사도 계산
-    cosine_sim = linear_kernel(tfidf_matrix_input, tfidf_matrix_combined)
-
-    # 가장 유사도가 높은 5개 추천
-    top_place_indices = cosine_sim.argsort()[0][-5:][::-1]
-
-    # 추천 장소 리스트 생성
+    # 코사인 유사도 검사
+    cosine_sim = linear_kernel(tfidf_matrix_input, tfidf_matrix_all_about)
+    top_place = cosine_sim.argsort()[0][-5:][::-1]
     recommended_places = []
-    for idx in top_place_indices:
-        recommended_places.append(df.iloc[idx].to_dict())  # 행 데이터를 딕셔너리로 변환
-
+    for idx in top_place:
+        place_info = df.iloc[idx]
+        recommended_places.append(f"{place_info['name']}: {place_info['info']}")
     return recommended_places
-
-# GPT로 설명 생성
-def generate_place_descriptions(places):
-    # 장소 정보를 문자열로 정리
-    place_details = "\n\n".join(
-        [f"장소 {i+1}:\n이름: {place.get('상호명', '알 수 없음')}"  # 키 오류 방지를 위해 get 메서드 사용
-         for i, place in enumerate(places)]
-    )
-
-    # GPT에 전달하여 설명 생성
-    gpt_response = chain.invoke({"place_details": place_details})
-    return gpt_response
-
 # 챗봇 UI 구성
 st.set_page_config(
     page_title="대푸리카(DFRC)", 
-    page_icon="🥞"
-)
+    page_icon="🥞")
 
 st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
@@ -116,24 +93,20 @@ if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
 if user_input:
-    # 추천 결과 생성
+    # AI 응답 처리
+    ai_response, new_history = response(user_input, st.session_state['chat_history'])
+    st.session_state['chat_history'] = new_history
+
+    # 추천 결과 생성 및 출력
     recommended_places = recommend(df, user_input, korean_stop_words)
-
-    # GPT 설명 생성
-    gpt_explanation = generate_place_descriptions(recommended_places)
-
     # 대화 메시지 출력
     for message in st.session_state['chat_history']:
         if isinstance(message, HumanMessage):
             messages.chat_message("user").write(message.content)
         if isinstance(message, AIMessage):
             messages.chat_message("assistant").write(message.content)
-
-    # 추천 결과 및 GPT 설명 출력
+    # 추천 결과 출력
     with st.container():
-        st.subheader("GPT가 추천한 장소 설명:")
-        st.write(gpt_explanation)
-
-        st.subheader("추천된 장소 상세 정보:")
+        st.subheader("추천 장소:")
         for place in recommended_places:
             st.write(place)
