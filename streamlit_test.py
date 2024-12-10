@@ -50,7 +50,6 @@ st.set_page_config(
     page_icon="🥞")
 
 st.title('대푸리카(DFRC)')
-st.caption(':blue[대구여행 추천 Chat 🥞]')
 # 사용자 입력 처리
 st.caption(':blue 대구여행 추천 Chat 🥞')
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
