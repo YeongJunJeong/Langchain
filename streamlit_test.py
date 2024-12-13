@@ -56,7 +56,7 @@ if user_input:
     # 검색 결과 가져오기
     search_results = retriever.get_relevant_documents(user_input)
     retrieved_docs = "\n".join(
-        [f"- {doc.metadata['title']}: {doc.page_content}" for doc in search_results]
+        [f"- {doc.metadata['상호명']}: {doc.page_content}" for doc in search_results]
     )
     
     # 검색 결과와 사용자 질문으로 답변 생성
