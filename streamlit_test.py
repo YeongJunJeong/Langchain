@@ -12,7 +12,7 @@ data = pd.read_csv('음식점.csv', encoding = 'cp949')
 # 데이터 벡터화 함수
 def prepare_vector_store(dataframe):
     documents = [
-        Document(page_content=row['content'], metadata={"title": row['title']})
+        Document(page_content=row['리뷰'], metadata={"상호명": row['상호명']})
         for _, row in dataframe.iterrows()
     ]
     texts = [doc.page_content for doc in documents]
