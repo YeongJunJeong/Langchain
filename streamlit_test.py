@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import Document
 import pandas as pd
 
-data = pd.read_csv('data/음식점.csv', encoding = 'cp949')
+data = pd.read_csv('음식점.csv', encoding = 'cp949')
 
 # 데이터 벡터화 함수
 def prepare_vector_store(dataframe):
