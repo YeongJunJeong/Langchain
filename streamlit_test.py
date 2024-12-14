@@ -1,70 +1,100 @@
-import streamlit as st
-from langchain_openai import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
+import faiss
+from sentence_transformers import SentenceTransformer
+import streamlit as st
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
 
+# Step 1: 데이터 로드 및 임베딩 생성
+@st.cache_resource
+def load_and_index_data(csv_path, model_name="all-MiniLM-L6-v2"):
+    # CSV 데이터 로드
+    data = pd.read_csv(csv_path)
+    model = SentenceTransformer(model_name)
+    
+    # '상호명', '업종분류명', '도로명주소', '리뷰'를 하나로 합쳐 검색 데이터 생성
+    data['combined'] = data['상호명'] + " " + data['업종분류명'] + " " + data['도로명주소'] + " " + data['리뷰']
+    
+    # 데이터 임베딩
+    embeddings = model.encode(data['combined'].tolist(), convert_to_tensor=False)
+    
+    # FAISS 인덱스 생성
+    index = faiss.IndexFlatL2(embeddings.shape[1])
+    index.add(embeddings)
+    return data, model, index
 
-if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+# Step 2: 음식점 검색
+def search_restaurant(query, data, model, index, top_k=3):
+    query_embedding = model.encode([query], convert_to_tensor=False)
+    distances, indices = index.search(query_embedding, top_k)
+    results = data.iloc[indices[0]]
+    return results
 
-# OpenAI API 키 설정 및 초기화
-llm = ChatOpenAI()
+# Step 3: 대화 흐름 설정
+def setup_chain(data, model, index):
+    # LangChain 메모리
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    
+    # LangChain 프롬프트 설정
+    prompt = ChatPromptTemplate.from_template(
+        template="사용자의 질문에 적합한 음식점을 추천하세요.\n질문: {query}\n답변:"
+    )
+    
+    # Conversational Chain 설정
+    chain = ConversationalRetrievalChain(
+        llm=ChatOpenAI(model="gpt-3.5-turbo"),
+        retriever=lambda q: search_restaurant(q, data, model, index),
+        memory=memory,
+        prompt=prompt,
+    )
+    return chain
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", '''You are an expert in recommending great restaurants and delicious cafes in Daegu, South Korea.  
-Listen carefully to the questions and recommend places relevant to the query.  
-Always respond with recommendations when asked.  
-Be polite and explain in Korean.  
-Provide 5 concise examples with a brief description for each.'''),
-    ("user", "{message}")
-])
+# Step 4: Streamlit UI
+def main():
+    st.set_page_config(page_title="음식점 추천", layout="wide")
+    st.title("🍴 음식점 추천 시스템")
+    
+    # 데이터 로드 및 인덱스 생성
+    data, model, index = load_and_index_data("음식점.csv")
+    
+    # LangChain Chain 설정
+    chain = setup_chain(data, model, index)
+    
+    # 사용자 입력
+    query = st.text_input("질문을 입력하세요", placeholder="예: 강남에 있는 맛있는 이탈리안 레스토랑 추천해줘")
+    
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+    
+    # 대화 처리
+    if query:
+        results = search_restaurant(query, data, model, index)
+        context = "\n".join(results['combined'].tolist())
+        response = chain.run(query=query)
+        
+        # 대화 이력 저장
+        st.session_state["chat_history"].append({"query": query, "response": response})
+        
+        # 결과 표시
+        st.subheader("추천 결과")
+        for _, row in results.iterrows():
+            st.write(f"**상호명**: {row['상호명']}")
+            st.write(f"**업종분류명**: {row['업종분류명']}")
+            st.write(f"**도로명주소**: {row['도로명주소']}")
+            st.write(f"**리뷰**: {row['리뷰']}")
+            st.markdown("---")
+        
+        st.subheader("AI 답변")
+        st.write(response)
+    
+    # 대화 이력 표시
+    st.subheader("대화 이력")
+    for history in st.session_state["chat_history"]:
+        st.write(f"**질문**: {history['query']}")
+        st.write(f"**답변**: {history['response']}")
+        st.markdown("---")
 
-output_parser = StrOutputParser()
-
-chain = prompt | llm | output_parser
-
-# 사용자 입력과 채팅 기록을 관리하는 함수
-def response(message, history):
-    history_langchain_format = []
-    for msg in history:
-        if isinstance(msg, HumanMessage):
-            history_langchain_format.append(msg)
-        elif isinstance(msg, AIMessage):
-            history_langchain_format.append(msg)
-
-    # 새로운 사용자 메시지 추가
-    history_langchain_format.append(HumanMessage(content=message))
-
-    # LangChain ChatOpenAI 모델을 사용하여 응답 생성
-    gpt_response = chain.invoke({"message" : message})
-
-    # 생성된 AI 메시지를 대화 이력에 추가
-    history_langchain_format.append(AIMessage(content=gpt_response))
-
-    return gpt_response, history_langchain_format
-
-# 챗봇 UI 구성
-st.set_page_config(
-    page_title="대푸리카(DFRC)", 
-    page_icon="🥞")
-
-st.title('대푸리카(DFRC)')
-st.caption(':blue 대구여행 추천 Chat 🥞')
-user_input = st.chat_input("질문을 입력하세요.", key="user_input")
-messages = st.container()
-
-# 대화 이력 저장을 위한 세션 상태 사용
-if 'chat_history' not in st.session_state:
-    st.session_state['chat_history'] = []
-
-if user_input:
-    ai_response, new_history = response(user_input, st.session_state['chat_history'])
-    st.session_state['chat_history'] = new_history
-
-    for message in st.session_state['chat_history']:
-        if isinstance(message, HumanMessage):
-            messages.chat_message("user").write(message.content)
-        if isinstance(message, AIMessage):
-            messages.chat_message("assistant").write(message.content)
+if __name__ == "__main__":
+    main()
