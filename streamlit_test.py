@@ -53,7 +53,7 @@ st.set_page_config(
 st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
-messages = st.container(height=400)
+messages = st.container()
 
 # 대화 이력 저장을 위한 세션 상태 사용
 if 'chat_history' not in st.session_state:
