@@ -1,69 +1,70 @@
 import streamlit as st
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain.schema import Document
+from langchain.schema import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import pandas as pd
 
-data = pd.read_csv('음식점.csv', encoding = 'cp949')
 
-# 데이터 벡터화 함수
-def prepare_vector_store(dataframe):
-    documents = [
-        Document(page_content=row['리뷰'], metadata={"상호명": row['상호명']})
-        for _, row in dataframe.iterrows()
-    ]
-    texts = [doc.page_content for doc in documents]
-    metadatas = [doc.metadata for doc in documents]
-    
-    # FAISS 벡터 스토어 생성
-    embeddings = OpenAIEmbeddings()
-    vector_store = FAISS.from_texts(texts, embeddings, metadatas=metadatas)
-    return vector_store
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-vector_store = prepare_vector_store(data)
-retriever = vector_store.as_retriever(search_type="similarity", search_k=5)
+# OpenAI API 키 설정 및 초기화
+llm = ChatOpenAI()
 
-# LangChain LLM 및 체인 설정
-llm = ChatOpenAI(model="gpt-3.5-turbo")
+prompt = ChatPromptTemplate.from_messages([
+    ("system", '''You are an expert in recommending great restaurants and delicious cafes in Daegu, South Korea.  
+Listen carefully to the questions and recommend places relevant to the query.  
+Always respond with recommendations when asked.  
+Be polite and explain in Korean.  
+Provide 5 concise examples with a brief description for each.'''),
+    ("user", "{message}")
+])
 
-# 프롬프트 템플릿 설정
-prompt_template = PromptTemplate(
-    input_variables=["retrieved_docs", "user_query"],
-    template="""
-You are an expert in recommending restaurants in Daegu, South Korea. Respond kindly to users' questions and provide appropriate recommendations.
-Always answer in Korean.
-Follow this format for responses:
-1. Restaurant: A brief description of the restaurant
-2. Restaurant: A brief description of the restaurant
-It is recommended to use a search engine to create concise descriptions.
-"""
-)
+output_parser = StrOutputParser()
 
-# LLM 체인 생성
-qa_chain = LLMChain(llm=llm, prompt=prompt_template)
+chain = prompt | llm | output_parser
 
-# Streamlit UI
-st.set_page_config(page_title="대푸리카(DFRC)", page_icon="🥞")
+# 사용자 입력과 채팅 기록을 관리하는 함수
+def response(message, history):
+    history_langchain_format = []
+    for msg in history:
+        if isinstance(msg, HumanMessage):
+            history_langchain_format.append(msg)
+        elif isinstance(msg, AIMessage):
+            history_langchain_format.append(msg)
+
+    # 새로운 사용자 메시지 추가
+    history_langchain_format.append(HumanMessage(content=message))
+
+    # LangChain ChatOpenAI 모델을 사용하여 응답 생성
+    gpt_response = chain.invoke({"message" : message})
+
+    # 생성된 AI 메시지를 대화 이력에 추가
+    history_langchain_format.append(AIMessage(content=gpt_response))
+
+    return gpt_response, history_langchain_format
+
+# 챗봇 UI 구성
+st.set_page_config(
+    page_title="대푸리카(DFRC)", 
+    page_icon="🥞")
+
 st.title('대푸리카(DFRC)')
 st.caption(':blue 대구여행 추천 Chat 🥞')
-
-# 사용자 입력 처리
 user_input = st.chat_input("질문을 입력하세요.", key="user_input")
+messages = st.container(height=400)
+
+# 대화 이력 저장을 위한 세션 상태 사용
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = []
+
 if user_input:
-    # 검색 결과 가져오기
-    search_results = retriever.get_relevant_documents(user_input)
-    retrieved_docs = "\n".join(
-        [f"- {doc.metadata['상호명']}: {doc.page_content}" for doc in search_results]
-    )
-    
-    # 검색 결과와 사용자 질문으로 답변 생성
-    response = qa_chain.run({
-        "retrieved_docs": retrieved_docs,
-        "user_query": user_input
-    })
-    
-    # 답변 출력
-    st.write(response)
+    ai_response, new_history = response(user_input, st.session_state['chat_history'])
+    st.session_state['chat_history'] = new_history
+
+    for message in st.session_state['chat_history']:
+        if isinstance(message, HumanMessage):
+            messages.chat_message("user").write(message.content)
+        if isinstance(message, AIMessage):
+            messages.chat_message("assistant").write(message.content)
