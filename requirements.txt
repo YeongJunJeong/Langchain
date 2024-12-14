@@ -9,3 +9,4 @@ streamlit
 streamlit-folium
 scikit-learn
 faiss-cpu
+sentence-transformers
