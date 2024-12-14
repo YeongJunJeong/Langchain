@@ -11,7 +11,7 @@ from langchain.chains import ConversationalRetrievalChain
 @st.cache_resource
 def load_and_index_data(csv_path, model_name="all-MiniLM-L6-v2"):
     # CSV 데이터 로드
-    data = pd.read_csv(csv_path, "encoding = "cp949")
+    data = pd.read_csv(csv_path, encoding = "cp949")
     model = SentenceTransformer(model_name)
     
     # '상호명', '업종분류명', '도로명주소', '리뷰'를 하나로 합쳐 검색 데이터 생성
