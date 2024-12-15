@@ -56,7 +56,7 @@ def recommend(df, user_input, stop_words):
     recommended_places = []
     for idx in top_place:
         place_info = df.iloc[idx]
-        recommended_places.append(f"{place_info['name']}: {place_info['info']}")
+        recommended_places.append(f"{place_info['상호명']}: {place_info['리뷰']}")
     return recommended_places
 
 # GPT 응답 생성 함수
