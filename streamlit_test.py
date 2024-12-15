@@ -18,7 +18,7 @@ system_message = SystemMessagePromptTemplate.from_template(''' You are a recomme
                                             You must speak kindly.
                                             1. restaurant
                                             2. restaurant
-                                            All you have to do is provide 5 destinations in this format.''')
+                                            All you have to do is provide 5 restaurants in this format.''')
 human_message = HumanMessagePromptTemplate.from_template("{message}")
 prompt = ChatPromptTemplate.from_messages([system_message, human_message])
 
