@@ -12,11 +12,11 @@ df = pd.read_csv("음식점.csv", encoding="cp949")
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
-  
-# LangChain 설정
-llm = ChatOpenAI()
 
-system_message = SystemMessagePromptTemplate.from_template(''' You are a recommendation expert who recommends restaurants in Daegu. 
+# LangChain 설정
+llm = ChatOpenAI(model=st.session_state["openai_model"], openai_api_key="your_openai_api_key_here")
+
+system_message = SystemMessagePromptTemplate.from_template('''You are a recommendation expert who recommends restaurants in Daegu. 
                                             You must always answer in Korean.
                                             You must speak kindly.
                                             1. restaurant
@@ -59,6 +59,17 @@ def recommend(df, user_input, stop_words):
         recommended_places.append(f"{place_info['name']}: {place_info['info']}")
     return recommended_places
 
+# GPT 응답 생성 함수
+def response(user_input, chat_history):
+    # 대화 이력으로 메시지 구성
+    messages = [AIMessage(content=message) if i % 2 == 0 else HumanMessage(content=message) 
+                for i, message in enumerate(chat_history)]
+    messages.append(HumanMessage(content=user_input))
+
+    # GPT 모델로 응답 생성
+    result = llm(messages)
+    return result.content, messages
+
 # Streamlit UI 설정
 st.title('대푸리카 (DFRC)')
 st.caption(':blue[대구여행 추천 Chat] 🥞')
@@ -69,10 +80,12 @@ if "chat_history" not in st.session_state:
 
 user_input = st.chat_input("질문을 입력하세요.")
 if user_input:
-    gpt_response, _ = response(user_input, st.session_state["chat_history"])
-    st.session_state["chat_history"].append(f"AI: {gpt_response}")
+    # GPT 응답 생성
+    gpt_response, updated_history = response(user_input, st.session_state["chat_history"])
+    st.session_state["chat_history"].extend([f"User: {user_input}", f"AI: {gpt_response}"])
 
     # 추천 실행
     recommendations = recommend(df, user_input, korean_stop_words)
+    st.write("### 추천 결과:")
     for rec in recommendations:
         st.write(rec)
