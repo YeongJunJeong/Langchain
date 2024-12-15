@@ -1,100 +1,110 @@
+from langchain_openai import ChatOpenAI
+from langchain.schema import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 import pandas as pd
-import faiss
-from sentence_transformers import SentenceTransformer
-import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationalRetrievalChain
+import re
 
-# Step 1: 데이터 로드 및 임베딩 생성
-@st.cache_resource
-def load_and_index_data(csv_path, model_name="all-MiniLM-L6-v2"):
-    # CSV 데이터 로드
-    data = pd.read_csv(csv_path, encoding = "cp949")
-    model = SentenceTransformer(model_name)
-    
-    # '상호명', '업종분류명', '도로명주소', '리뷰'를 하나로 합쳐 검색 데이터 생성
-    data['combined'] = data['상호명'] + " " + data['업종분류명'] + " " + data['도로명주소'] + " " + data['리뷰']
-    
-    # 데이터 임베딩
-    embeddings = model.encode(data['combined'].tolist(), convert_to_tensor=False)
-    
-    # FAISS 인덱스 생성
-    index = faiss.IndexFlatL2(embeddings.shape[1])
-    index.add(embeddings)
-    return data, model, index
+df = pd.read_csv("음식점.csv", encoding="cp949")
 
-# Step 2: 음식점 검색
-def search_restaurant(query, data, model, index, top_k=3):
-    query_embedding = model.encode([query], convert_to_tensor=False)
-    distances, indices = index.search(query_embedding, top_k)
-    results = data.iloc[indices[0]]
-    return results
 
-# Step 3: 대화 흐름 설정
-def setup_chain(data, model, index):
-    # LangChain 메모리
-    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-    
-    # LangChain 프롬프트 설정
-    prompt = ChatPromptTemplate.from_template(
-        template="사용자의 질문에 적합한 음식점을 추천하세요.\n질문: {query}\n답변:"
-    )
-    
-    # Conversational Chain 설정
-    chain = ConversationalRetrievalChain(
-        llm=ChatOpenAI(model="gpt-3.5-turbo"),
-        retriever=lambda q: search_restaurant(q, data, model, index),
-        memory=memory,
-        prompt=prompt,
-    )
-    return chain
+llm = ChatOpenAI()
 
-# Step 4: Streamlit UI
-def main():
-    st.set_page_config(page_title="음식점 추천", layout="wide")
-    st.title("🍴 음식점 추천 시스템")
-    
-    # 데이터 로드 및 인덱스 생성
-    data, model, index = load_and_index_data("음식점.csv")
-    
-    # LangChain Chain 설정
-    chain = setup_chain(data, model, index)
-    
-    # 사용자 입력
-    query = st.text_input("질문을 입력하세요", placeholder="예: 강남에 있는 맛있는 이탈리안 레스토랑 추천해줘")
-    
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-    
-    # 대화 처리
-    if query:
-        results = search_restaurant(query, data, model, index)
-        context = "\n".join(results['combined'].tolist())
-        response = chain.run(query=query)
-        
-        # 대화 이력 저장
-        st.session_state["chat_history"].append({"query": query, "response": response})
-        
-        # 결과 표시
-        st.subheader("추천 결과")
-        for _, row in results.iterrows():
-            st.write(f"**상호명**: {row['상호명']}")
-            st.write(f"**업종분류명**: {row['업종분류명']}")
-            st.write(f"**도로명주소**: {row['도로명주소']}")
-            st.write(f"**리뷰**: {row['리뷰']}")
-            st.markdown("---")
-        
-        st.subheader("AI 답변")
-        st.write(response)
-    
-    # 대화 이력 표시
-    st.subheader("대화 이력")
-    for history in st.session_state["chat_history"]:
-        st.write(f"**질문**: {history['query']}")
-        st.write(f"**답변**: {history['response']}")
-        st.markdown("---")
+prompt = ChatPromptTemplate.from_messages([("system" ,'''Your name is “가볼까?” He is a Daegu travel recommendation expert 
+                                            who recommends Daegu travel destinations. You must always answer in Korean.
+                                            You must speak kindly.
+                                            1. Destination
+                                            2. Destination
+                                            All you have to do is provide 5 destinations in this format.'''),
+                                           ("user", "{message}")])
 
-if __name__ == "__main__":
-    main()
+output_parser = StrOutputParser()
+
+chain = prompt | llm | output_parser
+
+# 사용자 입력과 채팅 기록을 관리하는 함수
+def response(message, history):
+    history_langchain_format = []
+    for msg in history:
+        if isinstance(msg, HumanMessage):
+            history_langchain_format.append(msg)
+        elif isinstance(msg, AIMessage):
+            history_langchain_format.append(msg)
+
+    # 새로운 사용자 메시지 추가
+    history_langchain_format.append(HumanMessage(content=message))
+
+    # LangChain ChatOpenAI 모델을 사용하여 응답 생성
+    gpt_response = chain.invoke({"message" : message})
+
+    # 생성된 AI 메시지를 대화 이력에 추가
+    history_langchain_format.append(AIMessage(content=gpt_response))
+
+    return gpt_response, history_langchain_format
+
+# 대화 이력 초기화
+chat_history = []
+
+#추천 모델
+
+#불용어 처리
+korean_stop_words = [
+    "이", "그", "저", "에", "가", "을", "를", "의", "은", "는", "들", "를", "과", "와", "에게", "게",
+    "합니다", "하는", "있습니다", "합니다", "많은", "많이", "많은", "많이", "모든", "모두", "한", "그리고", "그런데",
+    "나", "너", "우리", "저희", "이런", "그런", "저런", "어떤", "어느", "그럴", "것", "그것", "이것", "저것", 
+    "그러나", "그리하여", "그러므로", "그래서", "하지만", "그럼에도", "이에", "때문에", "그래서", "그러니까", 
+    "이렇게", "그렇게", "저렇게", "어떻게", "왜", "무엇", "어디", "언제", "어떻게", "어느", "모두", "모든", 
+    "그래도", "하지만", "그러면", "그런데", "하지만", "이러한", "그러한", "저러한", "이러한", "이렇게", "그렇게",
+    "저렇게", "어떻게", "왜", "어디", "언제", "어떻게", "모두", "모든", "몇", "누구", "무슨", "어느", "얼마나",
+    "무엇", "무슨", "아무", "여기", "저기", "거기", "그곳", "이곳", "저곳", "무엇", "아무", "모두", "마치",
+    "보다", "보이다", "등", "등등", "등등등"
+    ]
+
+
+def recommend(df, user_input, korean_stop_words):
+    
+    user_input_list = [user_input]
+    
+    all_about_data = df['all_about'].tolist()
+
+    tfidf = TfidfVectorizer(stop_words=korean_stop_words)
+    tfidf_matrix_all_about = tfidf.fit_transform(all_about_data)
+    tfidf_matrix_input = tfidf.transform(user_input_list)
+
+    # 코사인 유사도 검사
+    cosine_sim = linear_kernel(tfidf_matrix_input, tfidf_matrix_all_about)
+
+    top_place = cosine_sim.argsort()[0][-5:][::-1]
+
+    recommended_places = []
+    for idx in top_place:
+        place_info = df.iloc[idx]
+        recommended_places.append(f"{place_info['name']}: {place_info['info']}")
+
+    for place in recommended_places:
+        print(place)
+
+
+st.title('대푸리카(DFRC)')
+# 사용자 입력 처리
+st.caption(':blue 대구여행 추천 Chat 🥞')
+user_input = st.chat_input("질문을 입력하세요.", key="user_input")
+messages = st.container()
+
+
+while True:
+    user_input = input()
+    
+    # 응답 생성 및 출력
+    ai_response, chat_history = response(user_input, chat_history)
+    
+    pattern2 = re.findall(r'^.*?(?=1\.)', ai_response, re.DOTALL)
+
+    if pattern2:
+        for item in pattern2:
+            print(item.strip())
+            recommend(df, user_input, korean_stop_words)
+    else:
+        print(ai_response)
