@@ -14,7 +14,7 @@ if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
 
 # LangChain 설정
-llm = ChatOpenAI(model=st.session_state["openai_model"], openai_api_key="your_openai_api_key_here")
+llm = ChatOpenAI(model=st.session_state["openai_model"])
 
 system_message = SystemMessagePromptTemplate.from_template('''You are a recommendation expert who recommends restaurants in Daegu. 
                                             You must always answer in Korean.
