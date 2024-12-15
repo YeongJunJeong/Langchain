@@ -11,7 +11,7 @@ import re
 df = pd.read_csv("음식점.csv", encoding="cp949")
 
 # LangChain 설정
-llm = ChatOpenAI()
+llm = ChatOpenAI(model="gpt-3.5-turbo")
 
 system_message = SystemMessagePromptTemplate.from_template(''' You are a recommendation expert who recommends restaurants in Daegu. 
                                             You must always answer in Korean.
