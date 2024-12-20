@@ -56,7 +56,7 @@ if prompt := st.chat_input():
         explanations.append(response)
 
     # 결과 생성 및 출력
-    result = "\n".join([f"{idx}. {상호명} : {explanation}" for idx, (상호명, explanation) in enumerate(zip(similar_names, explanations), start=1)])
+    result = "\n".join([f"{idx}. {name} : {explanation}" for idx, (name, explanation) in enumerate(zip(similar_names, explanations), start=1)])
 
     # 답변 추가
     st.session_state.messages.append({"role": "assistant", "content": result})
