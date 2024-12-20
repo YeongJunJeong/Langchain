@@ -11,14 +11,14 @@ csv_file_path = '음식점.csv'  # CSV 파일 경로를 여기에 입력하세�
 data = pd.read_csv(csv_file_path, encoding = 'cp949')
 
 # 필요한 칼럼이 있는지 확인
-if 'all about' not in data.columns or '상호명' not in data.columns:
+if 'all_about' not in data.columns or '상호명' not in data.columns:
     raise ValueError("CSV 파일에 'all about' 또는 'name' 칼럼이 없습니다.")
 
 # 임베딩 모델 초기화
 embeddings = OpenAIEmbeddings()
 
 # "all about" 및 "name" 텍스트를 벡터화
-vectorstore = FAISS.from_texts(data['all about'].tolist(), embeddings)
+vectorstore = FAISS.from_texts(data['all_about'].tolist(), embeddings)
 
 # Streamlit UI 설정
 st.title("💬 Chatbot")
@@ -41,7 +41,7 @@ if prompt := st.chat_input():
     similarities = vectorstore.similarity_search(input_text, k=5)
 
     # 유사한 항목들의 name 추출
-    similar_names = [data.loc[data['all about'] == match.page_content, '상호명'].values[0] for match in similarities]
+    similar_names = [data.loc[data['all_about'] == match.page_content, '상호명'].values[0] for match in similarities]
 
     # ChatGPT 초기화
     llm = OpenAI(temperature=0.7)
