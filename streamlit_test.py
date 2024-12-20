@@ -58,8 +58,7 @@ if prompt := st.chat_input():
 3. name : 관련된 내용 설명
 4. name : 관련된 내용 설명
 5. name : 관련된 내용 설명
-이런식으로 설명해주세요. 항상 친절해야합니다
-")
+이런식으로 설명해주세요. 항상 친절해야합니다")
         explanations.append(response)
 
     # 결과 생성 및 출력
