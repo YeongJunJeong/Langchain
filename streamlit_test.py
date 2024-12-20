@@ -52,7 +52,7 @@ if prompt := st.chat_input():
     # ChatGPT로 간단한 설명 생성
     explanations = []
     for name in similar_names:
-        response = llm(f"'{상호명}'와 관련된 내용을 간단히 설명해주세요.")
+        response = llm(f"'{name}'와 관련된 내용을 간단히 설명해주세요.")
         explanations.append(response)
 
     # 결과 생성 및 출력
