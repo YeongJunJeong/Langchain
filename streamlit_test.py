@@ -5,10 +5,10 @@ import pandas as pd
 import streamlit as st
 
 # CSV 파일 경로
-csv_file_path = 'your_file.csv'  # CSV 파일 경로를 여기에 입력하세요
+csv_file_path = '음식점.csv'  # CSV 파일 경로를 여기에 입력하세요
 
 # 데이터 로드 및 준비
-data = pd.read_csv(csv_file_path)
+data = pd.read_csv(csv_file_path, encoding = 'cp949')
 
 # 필요한 칼럼이 있는지 확인
 if 'all about' not in data.columns or 'name' not in data.columns:
