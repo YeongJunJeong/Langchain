@@ -24,11 +24,11 @@ embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.from_texts(data['all_about'].tolist(), embeddings)
 
 # Streamlit UI 설정
-st.title("💬 Chatbot")
-st.caption("🚀 A Streamlit chatbot powered by OpenAI")
+st.title("🍔 대푸리카 (DFRC)")
+st.caption("🍜 대구광역시 맛집 추천 챗봇 서비스")
 
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "예) 수성못 근처에 가족들과 조용하게 외식할 곳을 추천해줘"}]
 
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
