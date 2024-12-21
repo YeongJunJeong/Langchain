@@ -52,11 +52,11 @@ if prompt := st.chat_input():
     # ChatGPT로 간단한 설명 생성
     explanations = []
     for name in similar_names:
-        response = llm(f"'{name}'은 대구광역시에 있는 식당입니다 관련된 내용을 매우 간단히 설명해주세요.")
+        response = llm(f"'{name}'은 대구광역시에 있는 식당입니다. 관련된 내용을 한 줄로 매우 간단히 설명해주세요. 항상 친절하게 존댓말로 해주세요")
         explanations.append(response)
 
     # 결과 생성 및 출력
-    result = "\n".join([f"{idx}. {name} : {explanation}" for idx, (name, explanation) in enumerate(zip(similar_names, explanations), start=1)])
+    result = "\n\n".join([f"{idx}. {name}:\n{explanation}" for idx, (name, explanation) in enumerate(zip(similar_names, explanations), start=1)])
 
     # 답변 추가
     st.session_state.messages.append({"role": "assistant", "content": result})
