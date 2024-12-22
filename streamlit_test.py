@@ -4,8 +4,11 @@ from langchain.llms import OpenAI
 import pandas as pd
 import streamlit as st
 
-if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+with st.sidebar:
+    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+    
+#if "openai_model" not in st.session_state:
+    #st.session_state["openai_model"] = "gpt-3.5-turbo"
 
 # CSV 파일 경로
 csv_file_path = '음식점.csv'  # CSV 파일 경로를 여기에 입력하세요
